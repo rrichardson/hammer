@@ -10,6 +10,7 @@ examples/dns
 examples/base64
 examples/base64_sem1
 examples/base64_sem2
+target/
 TAGS
 *.swp
 *.swo
