@@ -30,7 +30,7 @@ fn main() {
   let parser = init_parser();
   let result =  run_parser(parser, "Hello World!");
   unsafe {
-    h::h_pprint(libc::fdopen(libc::STDOUT_FILENO, mem::transmute("w".as_ptr())), (*result).ast, 0, 0);
+    h::h_pprint(libc::fdopen(libc::STDOUT_FILENO, "w".to_c_str().as_ptr()), (*result).ast, 0, 0);
   }
 }
 
