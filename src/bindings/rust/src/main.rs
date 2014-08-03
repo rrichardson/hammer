@@ -1,10 +1,6 @@
 #![feature(globs)]
 
 extern crate libc;
-use std::num::{ from_uint };
-use std::ptr;
-use std::mem;
-use std::io::stdio;
 use h = hammer;
 
 fn main() { 
