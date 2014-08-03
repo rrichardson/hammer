@@ -4,7 +4,3 @@ name = "hammer"
 version = "0.1.0"
 authors = [ "rick.richardson@gmail.com" ]
 
-[[lib]]
-
-name = "hammer"
-path = "src/hammerll.rs"
