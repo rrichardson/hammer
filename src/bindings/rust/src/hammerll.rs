@@ -46,14 +46,15 @@ pub struct Struct_HBytes_ {
 }
 pub type HBytes = Struct_HBytes_;
 #[repr(C)]
-pub struct Struct_HParsedToken_ {
-    pub token_type: HTokenType,
-    pub index: size_t,
-    pub bit_offset: ::libc::c_char,
-}
-#[repr(C)]
 pub struct HTokenData {
     pub data: [u64, ..2u],
+}
+#[repr(C)]
+pub struct Struct_HParsedToken_ {
+    pub token_type: HTokenType,
+    pub data: HTokenData,
+    pub index: size_t,
+    pub bit_offset: ::libc::c_char,
 }
 impl HTokenData {
     pub fn bytes(&mut self) -> *mut HBytes {

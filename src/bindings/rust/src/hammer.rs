@@ -11,12 +11,31 @@ pub struct Parser {
   pub inner: *mut HParser
 }
 
+#[inline]
 pub fn wrapParser(p: *mut HParser) -> Parser {
   Parser { inner: p }
 }
 
+enum TokenData {
+  String(&str),
+  Int(int),
+  UInt(uint),
+  Double(dbl),
+  Float(flt),
+  Sequence(&[ParsedToken]),
+  User(*mut ::libc::c_void)
+}
+
+struct ParsedToken {
+  data: TokenData,
+  index: u64,
+  bit_index: i8
+}
+
 pub struct ParseResult {
-  pub inner: *mut HParseResult
+  pub ast: ParsedToken,
+  pub bit_offset: u64,
+  inner: *mut HParseResult
 }
 
 impl ParseResult {
@@ -134,9 +153,22 @@ pub fn middle(p: Parser, x: Parser, q: Parser) ->  Parser {
     wrapParser(h_middle(&*p.inner, &*x.inner, &*q.inner))
   }
 }
-pub fn action(p: Parser, a: Action, user_data: *mut ::libc::c_void) ->  Parser {
+
+extern fn act_cb(arg1: *const HParseResult, arg2: *mut ::libc::c_void) -> *mut HParsedToken {
   unsafe {
-    wrapParser(h_action(&*p.inner, a.inner, user_data))
+    let cb  = *(arg2 as &fn (pr: ParseResult) -> Option<Box<ParsedToken>>);
+    let res = cb(ParseResult {inner: pr as *mut ParseResult});
+    match res {
+      Some(token) => token as *mut HParsedToken,
+      None _ => ptr::null::<HParsedToken>() as *mut HParsedToken 
+    }
+  }
+}
+
+pub fn action(p: Parser, cb: fn (pr: Option<ParseResult>) -> Option<ParsedToken>) ->  Parser {
+  unsafe {
+
+    wrapParser(h_action(&*p.inner, , user_data))
   }
 }
 pub fn inside(charset: &str) ->  Parser {
