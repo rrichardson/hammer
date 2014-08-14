@@ -58,7 +58,7 @@ AddOption("--variant",
           dest="variant",
           nargs=1, type="choice",
           choices=["debug", "opt"],
-          default="opt",
+          default="debug",
           action="store",
           help="Build variant (debug or opt)")
 

@@ -89,15 +89,13 @@ pub struct Struct_HParseResult_ {
 pub type HParseResult = Struct_HParseResult_;
 pub enum Struct_HBitWriter_ { }
 pub type HBitWriter = Struct_HBitWriter_;
-pub type HAction =
-    ::std::option::Option<extern "C" fn
+pub type HAction = extern "C" fn
                               (arg1: *const HParseResult,
                                arg2: *mut ::libc::c_void)
-                              -> *mut HParsedToken>;
-pub type HPredicate =
-    ::std::option::Option<extern "C" fn
+                              -> *mut HParsedToken;
+pub type HPredicate = extern "C" fn
                               (arg1: *mut HParseResult,
-                               arg2: *mut ::libc::c_void) -> ::libc::c_int>;
+                               arg2: *mut ::libc::c_void) -> ::libc::c_int;
 pub enum Struct_HCFChoice_ { }
 pub type HCFChoice = Struct_HCFChoice_;
 pub enum Struct_HRVMProg_ { }
@@ -156,13 +154,16 @@ pub struct Struct_HBenchmarkResults_ {
 pub type HAllocator = libc::c_void;
 
 pub type HBenchmarkResults = Struct_HBenchmarkResults_;
+
 #[link(name = "hammer")]
 extern "C" {
-    pub fn h_parse(parser: *const HParser, input: *const uint8_t,
-                   length: size_t) -> *mut HParseResult;
+    pub fn h_parse(parser: *const HParser, input: *const uint8_t, length: size_t) -> *mut HParseResult;
     pub fn h_parse__m(mm__: *mut HAllocator, parser: *const HParser,
                       input: *const uint8_t, length: size_t) ->
      *mut HParseResult;
+
+    pub fn h_make(arena: *mut HArena, t : HTokenType, value : *mut ::libc::c_void) -> *mut HParsedToken;
+
     pub fn h_token(str: *const uint8_t, len: size_t) -> *mut HParser;
     pub fn h_token__m(mm__: *mut HAllocator, str: *const uint8_t, len: size_t)
      -> *mut HParser;

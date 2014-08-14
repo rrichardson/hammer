@@ -16,25 +16,7 @@ pub fn wrapParser(p: *mut HParser) -> Parser {
   Parser { inner: p }
 }
 
-enum TokenData {
-  String(&str),
-  Int(int),
-  UInt(uint),
-  Double(dbl),
-  Float(flt),
-  Sequence(&[ParsedToken]),
-  User(*mut ::libc::c_void)
-}
-
-struct ParsedToken {
-  data: TokenData,
-  index: u64,
-  bit_index: i8
-}
-
 pub struct ParseResult {
-  pub ast: ParsedToken,
-  pub bit_offset: u64,
   inner: *mut HParseResult
 }
 
@@ -46,14 +28,6 @@ impl ParseResult {
   }
 }
 
-pub struct Predicate {
-  inner: HPredicate
-}
-
-pub struct Action {
-  inner: HAction
-}
-
 pub fn parse(parser: Parser, input: &str) -> Option<ParseResult> {
   unsafe {
     let result = h_parse(&*parser.inner, input.as_ptr(), input.char_len() as u64);
@@ -62,7 +36,7 @@ pub fn parse(parser: Parser, input: &str) -> Option<ParseResult> {
       None
     }
     else {
-      Some(ParseResult { inner: result })
+      Some(ParseResult { inner: result,  })
     }
   }
 }
@@ -154,23 +128,32 @@ pub fn middle(p: Parser, x: Parser, q: Parser) ->  Parser {
   }
 }
 
-extern fn act_cb(arg1: *const HParseResult, arg2: *mut ::libc::c_void) -> *mut HParsedToken {
+extern "C" fn act_cb<T>(arg1: *const HParseResult, arg2: *mut ::libc::c_void) -> *mut HParsedToken {
   unsafe {
-    let cb  = *(arg2 as &fn (pr: ParseResult) -> Option<Box<ParsedToken>>);
-    let res = cb(ParseResult {inner: pr as *mut ParseResult});
+    let cb  = *(arg2 as *mut fn (pr: Option<ParseResult>) -> Option<Box<T>>);
+    let arg : Option<ParseResult> = 
+              if arg1 == ptr::null::<HParseResult>() { 
+                Some(ParseResult {inner: arg1 as *mut HParseResult}) } 
+              else { None };
+    let res : Option<Box<T>> = cb(arg);
     match res {
-      Some(token) => token as *mut HParsedToken,
-      None _ => ptr::null::<HParsedToken>() as *mut HParsedToken 
+      Some(token) => {
+        let retval : *mut ::libc::c_void = mem::transmute(token);
+        h_make((*arg1).arena, TT_USER, retval)
+      } 
+      None => ptr::null::<HParsedToken>() as *mut HParsedToken 
     }
   }
 }
 
-pub fn action(p: Parser, cb: fn (pr: Option<ParseResult>) -> Option<ParsedToken>) ->  Parser {
+pub fn action<T>(p: Parser, cb: fn (pr: Option<ParseResult>) -> Option<Box<T>>) ->  Parser {
   unsafe {
-
-    wrapParser(h_action(&*p.inner, , user_data))
+    let user_data = cb as *mut ::libc::c_void;
+    wrapParser(h_action(&*p.inner, act_cb::<T>, user_data))
   }
 }
+
+
 pub fn inside(charset: &str) ->  Parser {
   unsafe {
     wrapParser(h_in(charset.as_ptr(), charset.char_len() as u64))
@@ -267,9 +250,9 @@ pub fn length_value(length: Parser, value: Parser) ->  Parser {
     wrapParser(h_length_value(&*length.inner, &*value.inner))
   }
 }
-pub fn attr_bool(p: Parser, pred: Predicate, user_data: *mut ::libc::c_void) ->  Parser {
+pub fn attr_bool(p: Parser, pred: HPredicate, user_data: *mut ::libc::c_void) ->  Parser {
   unsafe {
-    wrapParser(h_attr_bool(&*p.inner, pred.inner, user_data))
+    wrapParser(h_attr_bool(&*p.inner, pred, user_data))
   }
 }
 pub fn and(p: Parser) -> Parser {

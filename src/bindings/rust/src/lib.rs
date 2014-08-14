@@ -1,4 +1,5 @@
 #![feature(globs)]
+#[crate_type = "lib"];
 
 extern crate libc;
 mod hammer;
