@@ -9,9 +9,8 @@ use libc::{ size_t, uint8_t, uint64_t, int64_t, FILE };
 
 pub type HArena = libc::c_void;
 
-pub enum Struct_HParseState_ { }
-pub type HParseState = Struct_HParseState_;
-pub type Enum_HParserBackend_ = ::libc::c_uint;
+pub enum HParseState { }
+pub type HParserBackend = ::libc::c_uint;
 pub static PB_MIN: ::libc::c_uint = 0;
 pub static PB_PACKRAT: ::libc::c_uint = 0;
 pub static PB_REGULAR: ::libc::c_uint = 1;
@@ -19,8 +18,7 @@ pub static PB_LLk: ::libc::c_uint = 2;
 pub static PB_LALR: ::libc::c_uint = 3;
 pub static PB_GLR: ::libc::c_uint = 4;
 pub static PB_MAX: ::libc::c_uint = 4;
-pub type HParserBackend = Enum_HParserBackend_;
-pub type Enum_HTokenType_ = ::libc::c_uint;
+pub type HTokenType = ::libc::c_uint;
 pub static TT_NONE: ::libc::c_uint = 1;
 pub static TT_BYTES: ::libc::c_uint = 2;
 pub static TT_SINT: ::libc::c_uint = 4;
@@ -30,27 +28,24 @@ pub static TT_RESERVED_1: ::libc::c_uint = 17;
 pub static TT_ERR: ::libc::c_uint = 32;
 pub static TT_USER: ::libc::c_uint = 64;
 pub static TT_MAX: ::libc::c_uint = 65;
-pub type HTokenType = Enum_HTokenType_;
 #[repr(C)]
-pub struct Struct_HCountedArray_ {
+pub struct HCountedArray {
     pub capacity: size_t,
     pub used: size_t,
     pub arena: *mut HArena,
-    pub elements: *mut *mut Struct_HParsedToken_,
+    pub elements: *mut *mut HParsedToken,
 }
-pub type HCountedArray = Struct_HCountedArray_;
 #[repr(C)]
-pub struct Struct_HBytes_ {
+pub struct HBytes {
     pub token: *const uint8_t,
     pub len: size_t,
 }
-pub type HBytes = Struct_HBytes_;
 #[repr(C)]
 pub struct HTokenData {
     pub data: [u64, ..2u],
 }
 #[repr(C)]
-pub struct Struct_HParsedToken_ {
+pub struct HParsedToken {
     pub token_type: HTokenType,
     pub data: HTokenData,
     pub index: size_t,
@@ -79,16 +74,13 @@ impl HTokenData {
         unsafe { ::std::mem::transmute(self) }
     }
 }
-pub type HParsedToken = Struct_HParsedToken_;
 #[repr(C)]
-pub struct Struct_HParseResult_ {
+pub struct HParseResult {
     pub ast: *const HParsedToken,
     pub bit_length: int64_t,
     pub arena: *mut HArena,
 }
-pub type HParseResult = Struct_HParseResult_;
-pub enum Struct_HBitWriter_ { }
-pub type HBitWriter = Struct_HBitWriter_;
+pub enum HBitWriter { }
 pub type HAction = extern "C" fn
                               (arg1: *const HParseResult,
                                arg2: *mut ::libc::c_void)
@@ -96,30 +88,25 @@ pub type HAction = extern "C" fn
 pub type HPredicate = extern "C" fn
                               (arg1: *mut HParseResult,
                                arg2: *mut ::libc::c_void) -> ::libc::c_int;
-pub enum Struct_HCFChoice_ { }
-pub type HCFChoice = Struct_HCFChoice_;
-pub enum Struct_HRVMProg_ { }
-pub type HRVMProg = Struct_HRVMProg_;
-pub enum Struct_HParserVtable_ { }
-pub type HParserVtable = Struct_HParserVtable_;
+pub enum HCFChoice { }
+pub enum HRVMProg { }
+pub enum HParserVtable { }
 #[repr(C)]
-pub struct Struct_HParser_ {
+pub struct HParser {
     pub vtable: *const HParserVtable,
     pub backend: HParserBackend,
     pub backend_data: *mut ::libc::c_void,
     pub env: *mut ::libc::c_void,
     pub desugared: *mut HCFChoice,
 }
-pub type HParser = Struct_HParser_;
 #[repr(C)]
-pub struct Struct_HParserTestcase_ {
+pub struct HParserTestcase {
     pub input: *mut ::libc::c_uchar,
     pub length: size_t,
     pub output_unambiguous: *mut ::libc::c_char,
 }
-pub type HParserTestcase = Struct_HParserTestcase_;
 #[repr(C)]
-pub struct Struct_HCaseResult_ {
+pub struct HCaseResult {
     pub success: ::libc::c_int,
     pub length: size_t,
 }
@@ -135,25 +122,22 @@ impl HResultTiming {
         unsafe { ::std::mem::transmute(self) }
     }
 }
-pub type HCaseResult = Struct_HCaseResult_;
 #[repr(C)]
-pub struct Struct_HBackendResults_ {
+pub struct HBackendResults {
     pub backend: HParserBackend,
     pub compile_success: ::libc::c_int,
     pub n_testcases: size_t,
     pub failed_testcases: size_t,
     pub cases: *mut HCaseResult,
 }
-pub type HBackendResults = Struct_HBackendResults_;
 #[repr(C)]
-pub struct Struct_HBenchmarkResults_ {
+pub struct HBenchmarkResults {
     pub len: size_t,
     pub results: *mut HBackendResults,
 }
 
 pub type HAllocator = libc::c_void;
 
-pub type HBenchmarkResults = Struct_HBenchmarkResults_;
 
 #[link(name = "hammer")]
 extern "C" {

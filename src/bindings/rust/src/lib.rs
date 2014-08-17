@@ -1,9 +1,8 @@
 #![feature(globs)]
-#[crate_type = "lib"];
 
 extern crate libc;
-mod hammer;
-mod hammerll;
+pub mod hammer;
+pub mod hammerll;
 
 #[cfg(test)]
 mod tests {
