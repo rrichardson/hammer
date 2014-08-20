@@ -2,6 +2,7 @@
 extern crate libc;
 use std::ptr;
 use std::mem;
+use std::vec;
 //use std::io::stdio;
 
 use hammerll::*;
@@ -10,24 +11,22 @@ pub struct Parser {
   pub inner: *mut HParser
 }
 
-#[inline]
-pub fn wrap_parser(p: *mut HParser) -> Parser {
-  Parser { inner: p }
+pub enum ParsedToken<T> {
+  Nothing,
+  Bytes(Vec<u8>),
+  SInt(i64),
+  UInt(u64),
+  Sequence(Vec<ParsedToken<T>>),
+  Err(String),
+  User(Box<T>)
 }
 
-pub struct ParseResult {
-  inner: *mut HParseResult
+pub struct ParseResult<T> {
+  ast : ParsedToken<T>,
+  bit_length : i64
 }
 
-impl ParseResult {
-  pub fn pprint(&self) {
-    unsafe {
-      h_pprint(libc::fdopen(libc::STDOUT_FILENO, "w".to_c_str().as_ptr()), (*self.inner).ast, 0, 0)
-    }
-  }
-}
-
-pub fn parse(parser: Parser, input: &str) -> Option<ParseResult> {
+pub fn parse<T>(parser: Parser, input: &str) -> Option<ParseResult<T>> {
   unsafe {
     let result = h_parse(&*parser.inner, input.as_ptr(), input.char_len() as u64);
 
@@ -35,11 +34,41 @@ pub fn parse(parser: Parser, input: &str) -> Option<ParseResult> {
       None
     }
     else {
-      Some(ParseResult { inner: result,  })
+      Some(wrap_parse_result::<T>(result) )
     }
   }
 }
 
+#[inline]
+fn wrap_parser(p: *mut HParser) -> Parser {
+  Parser { inner: p }
+}
+
+#[inline]
+fn wrap_parse_result<T>(p: *mut HParseResult) -> ParseResult<T> {
+  fn unwrap_parsed_token<R>(ast: *mut HParsedToken) -> ParsedToken<R> {
+    unsafe {
+      match (*ast).token_type {
+        TT_NONE     =>  Nothing, 
+        TT_BYTES    =>  { let res = *( (*ast).data.bytes() ); 
+                          unsafe { Bytes(vec::raw::from_buf::<u8>(res.token, res.len as uint)) } },
+        TT_SINT     =>  SInt(*( (*ast).data.sint())), 
+        TT_UINT     =>  UInt(*( (*ast).data.uint())),
+        TT_SEQUENCE =>  { let res = *( (*ast).data.seq()); 
+                          let v = unsafe { vec::raw::from_buf::<*mut HParsedToken>((*res).elements as *const *mut
+                            HParsedToken, (*res).used as uint) };
+                            Sequence(v.move_iter().map(unwrap_parsed_token::<R>).collect()) },
+        TT_ERR      =>  Nothing, //TODO fixme 
+        TT_USER     =>  { let res = *( (*ast).data.user()); 
+                          User(mem::transmute(res)) },
+        _           =>  Nothing 
+      }
+    }
+  }
+  unsafe {
+    ParseResult::<T> { ast: unwrap_parsed_token::<T>((*p).ast as *mut HParsedToken), bit_length: (*p).bit_length }
+  }
+}
 
 pub fn token(instr: &str) -> Parser {
   unsafe {
@@ -129,10 +158,10 @@ pub fn middle(p: Parser, x: Parser, q: Parser) ->  Parser {
 
 extern "C" fn act_cb<T>(arg1: *const HParseResult, arg2: *mut ::libc::c_void) -> *mut HParsedToken {
   unsafe {
-    let cb  = *(arg2 as *mut fn (pr: Option<ParseResult>) -> Option<Box<T>>);
-    let arg : Option<ParseResult> = 
+    let cb  = *(arg2 as *mut fn (pr: Option<ParseResult<T>>) -> Option<Box<T>>);
+    let arg : Option<ParseResult<T>> = 
               if arg1 == ptr::null::<HParseResult>() { 
-                Some(ParseResult {inner: arg1 as *mut HParseResult}) } 
+                Some(wrap_parse_result::<T>(arg1 as *mut HParseResult)) } 
               else { None };
     let res : Option<Box<T>> = cb(arg);
     match res {
@@ -145,7 +174,7 @@ extern "C" fn act_cb<T>(arg1: *const HParseResult, arg2: *mut ::libc::c_void) ->
   }
 }
 
-pub fn action<T>(p: Parser, cb: fn (pr: Option<ParseResult>) -> Option<Box<T>>) ->  Parser {
+pub fn action<T>(p: Parser, cb: fn (pr: Option<ParseResult<T>>) -> Option<Box<T>>) ->  Parser {
   unsafe {
     let user_data = cb as *mut ::libc::c_void;
     wrap_parser(h_action(&*p.inner, act_cb::<T>, user_data))
